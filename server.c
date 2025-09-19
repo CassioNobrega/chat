@@ -11,12 +11,11 @@
 #include <fcntl.h> //fcntl()
 
 
-void error(char *mensage);
-void handle_signal(int sig);
+void error(char *message);
+void handle_signal(int signal);
 
-volatile sig_atomic_t rodando = 1;  // variável segura para sinal
-
-
+volatile sig_atomic_t is_running = 1; // variável segura para sinal
+volatile sig_atomic_t is_conected = 1; // variável segura para sinal
 
 int main(int argc, char *argv[])
 {
@@ -52,7 +51,7 @@ int main(int argc, char *argv[])
         error("listen falhou");
     }
     printf("Servidor escutando na porta %d...\n", port);
-    while (rodando) {
+    while (is_running) {
         client_length = sizeof(client_addr);
         new_sock_fd = accept(socket_fd, (struct sockaddr *) &client_addr, &client_length);
         if (new_sock_fd < 0) {
@@ -67,13 +66,17 @@ int main(int argc, char *argv[])
             char *host_name = inet_ntoa(client_addr.sin_addr);
             close(socket_fd);
             memset(buffer, 0, 256);
-            if (read(new_sock_fd, buffer, 255) < 0) {
+            while (is_conected)
+            {
+                if (read(new_sock_fd, buffer, 255) < 0) {
                 error("error ao ler socket");
-            }
-            printf("mensagem de %s: %s\n", host_name, buffer);
-            if (write(new_sock_fd, "programa finalizado", 19) < 0) {
-                error("error ao enviar mensagem");
-            }
+                }
+                printf("mensagem de %s: %s", host_name, buffer);
+                if (write(new_sock_fd, "programa finalizado", 19) < 0) {
+                    error("error ao enviar mensagem");
+                }
+                memset(buffer, 0, 256);
+            }            
             close(new_sock_fd);
             printf("conexao encerrada\n");
             exit(0);
@@ -85,23 +88,23 @@ int main(int argc, char *argv[])
 }
 
 
-void error(char *mensage)
+void error(char *message)
 {
-    perror(mensage);
+    perror(message);
     exit(EXIT_FAILURE);
 }
 
-void handle_signal(int sig)
+void handle_signal(int signal)
 {
-    switch (sig)
+    switch (signal)
     {
     case 2:
-        printf("\nctrl + c recebido, encerrando...\n", sig);
+        printf("\nctrl + c recebido, encerrando...\n", signal);
         break;
     default:
-        printf("\nSinal recebido (%d), encerrando...\n", sig);
+        printf("\nSinal recebido (%d), encerrando...\n", signal);
         break;
     }
-    rodando = 0;
+    is_running = 0;
     exit(0);
 }
