@@ -15,7 +15,6 @@ void error(char *message);
 void handle_signal(int signal);
 
 volatile sig_atomic_t is_running = 1; // variável segura para sinal
-volatile sig_atomic_t is_conected = 1; // variável segura para sinal
 
 int main(int argc, char *argv[])
 {
@@ -28,8 +27,8 @@ int main(int argc, char *argv[])
     if (argc < 2) {
         error("porta nao providenciada");
     }
-    signal(SIGINT, handle_signal);
-    signal(SIGTERM, handle_signal);
+    //signal(SIGINT, handle_signal);
+    //signal(SIGTERM, handle_signal);
     port = atoi(argv[1]);
     // 1. criar novo socket
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -50,8 +49,8 @@ int main(int argc, char *argv[])
     if (listen(socket_fd, 3) < 0) {
         error("listen falhou");
     }
-    printf("Servidor escutando na porta %d...\n", port);
     while (is_running) {
+        printf("Servidor escutando na porta %d...\n", port);
         client_length = sizeof(client_addr);
         new_sock_fd = accept(socket_fd, (struct sockaddr *) &client_addr, &client_length);
         if (new_sock_fd < 0) {
@@ -63,28 +62,33 @@ int main(int argc, char *argv[])
             error("error ao criar processo");
         case 0:
             // processo filho
+            printf("\033[2J\033[H");
             char *host_name = inet_ntoa(client_addr.sin_addr);
             close(socket_fd);
             memset(buffer, 0, 256);
-            while (is_conected)
+            int is_connected = 1;
+            while (is_connected)
             {
                 if (read(new_sock_fd, buffer, 255) < 0) {
-                error("error ao ler socket");
+                    error("error ao ler socket");
                 }
-                printf("mensagem de %s: %s", host_name, buffer);
-                if (write(new_sock_fd, "programa finalizado", 19) < 0) {
-                    error("error ao enviar mensagem");
+                printf("mensagem do processo %d: %s", getpid(), buffer);
+                if (strcmp(buffer, "exit\n") == 0) {
+                    printf("quer sair\n");
+                    is_connected = 0;
                 }
                 memset(buffer, 0, 256);
-            }            
+            }
+            printf("conexao encerrada no filho\n");
             close(new_sock_fd);
-            printf("conexao encerrada\n");
-            exit(0);
+            return 0;
         default:
-            // processo pai
             break;
         }
+        printf("Processo %d criado com sucesso\n", pid);
+        close(new_sock_fd);
     }
+    return 0;
 }
 
 
@@ -106,5 +110,4 @@ void handle_signal(int signal)
         break;
     }
     is_running = 0;
-    exit(0);
 }

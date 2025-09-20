@@ -18,8 +18,8 @@ int main (int argc, char *argv[])
     struct sockaddr_in server_addr;
     struct hostent *server;
     char buffer[256];
-    signal(SIGINT, handle_signal);
-    signal(SIGTERM, handle_signal);
+    //signal(SIGINT, handle_signal);
+    //signal(SIGTERM, handle_signal);
     if (argc < 3) {
         fprintf(stderr,"usage: %s 0.0.0.0 8080\n", argv[0]);
         exit(-1);
@@ -46,13 +46,9 @@ int main (int argc, char *argv[])
     printf("envie sua mensagem:\n");
     memset(buffer, 0, 256);
     while (is_connected) {
-        sleep(1);
         fgets(buffer, 255, stdin);
-        if (write(socket_client, buffer, strlen(buffer)) < 0) {
+        if (send(socket_client, buffer, strlen(buffer), 0) < 0) {
             error("error ao enviar mensagem");
-        }
-        if (read(socket_client, buffer, 255) < 0) {
-            error("error ao ler mensagem");
         }
         memset(buffer, 0, 256);
     }
@@ -78,5 +74,4 @@ void handle_signal(int signal)
         break;
     }
     is_connected = 0;
-    printf("aperte Enter p sair\n");
 }
