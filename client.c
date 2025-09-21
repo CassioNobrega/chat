@@ -24,7 +24,8 @@ int main (int argc, char *argv[])
         fprintf(stderr,"usage: %s 0.0.0.0 8080\n", argv[0]);
         exit(-1);
     }
-    server = gethostbyname(argv[1]);
+    //server = gethostbyname(argv[1]);
+    server = gethostbyaddr("192.168.100.159", sizeof(socket_client), 0);
     if (server == NULL) {
         fprintf(stderr, "error, host nao encontrado\n");
     }
